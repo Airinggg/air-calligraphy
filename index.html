@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Calligraphy</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Air Calligraphy</h1>
+    
+    <div class="controls">
+        <label for="canvasSize">Canvas Size:</label>
+        <select id="canvasSize" onchange="resizeCanvas()">
+            <option value="800x600">800 x 600</option>
+            <option value="1024x768">1024 x 768</option>
+            <option value="full">Full Screen</option>
+        </select>
+
+        <label for="brushSize">Brush Size:</label>
+        <input type="range" id="brushSize" min="1" max="20" value="5">
+
+        <label for="colorPicker">Brush Color:</label>
+        <input type="color" id="colorPicker" value="#000000">
+
+        <!-- Clear and Save buttons -->
+        <button onclick="clearCanvas()">Clear</button>
+        <button onclick="saveCanvas()">Save</button>
+    </div>
+
+    <canvas id="calligraphyCanvas"></canvas>
+
+    <script src="script.js"></script>
+</body>
+</html>
