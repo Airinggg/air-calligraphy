@@ -9,11 +9,15 @@ let isErasing = false;
 let lastX = 0;
 let lastY = 0;
 let lastTime = 0;
+let inkSpreadTimeout = null;
 
 // Brush settings
 let brushSize = 10;
 let brushColor = "#000000";
 let inkSpreadAngle = -45;
+
+// Eraser settings
+let eraserSize = 20; // Default eraser size
 
 // Handle mouse and touch events
 canvas.addEventListener("mousedown", startDrawing);
@@ -33,6 +37,11 @@ document.getElementById("brushSize").addEventListener("input", (e) => {
 
 document.getElementById("colorPicker").addEventListener("input", (e) => {
     brushColor = e.target.value;
+});
+
+// Eraser size control
+document.getElementById("eraserSize").addEventListener("input", (e) => {
+    eraserSize = e.target.value;
 });
 
 // Start drawing (mouse)
@@ -59,6 +68,7 @@ function startDrawingTouch(event) {
 // Stop drawing
 function stopDrawing() {
     if (drawing) {
+        clearTimeout(inkSpreadTimeout);
         drawInkSpread(lastX, lastY);
     }
     drawing = false;
@@ -91,9 +101,8 @@ function drawStroke(currentX, currentY) {
 
     const speed = distance / (timeDiff || 1);
 
-    // Adjust line width and opacity based on speed
-    const lineWidth = Math.min(brushSize + speed * 2, brushSize * 1.5);
-    const opacity = Math.max(0.3, 1 - speed * 0.05); // Faster = lower opacity
+    // Adjust line width based on speed
+    const lineWidth = isErasing ? eraserSize : Math.max(brushSize * 0.5, brushSize * (1 - speed * 0.05)); // Faster = thinner, slower = thicker
 
     ctx.lineWidth = lineWidth;
     ctx.lineCap = "round";
@@ -103,23 +112,49 @@ function drawStroke(currentX, currentY) {
         ctx.globalCompositeOperation = "destination-out";
     } else {
         ctx.globalCompositeOperation = "source-over";
-        ctx.strokeStyle = `rgba(${hexToRgb(brushColor)}, ${opacity})`;
-
-        // Add slight ink splatter for texture
-        drawSplatter(currentX, currentY, lineWidth * 0.1, opacity);
+        ctx.strokeStyle = brushColor;
     }
 
-    ctx.lineTo(currentX, currentY);
-    ctx.stroke();
+    // Draw smooth stroke with fiber-like texture
+    drawSmoothStroke(currentX, currentY, lineWidth);
 
-    // Add subtle "fiber" effect
-    drawFibers(currentX, currentY, lineWidth);
-
-    ctx.beginPath();
-    ctx.moveTo(currentX, currentY);
+    // Check for ink spread (if the mouse stops moving)
+    clearTimeout(inkSpreadTimeout);
+    inkSpreadTimeout = setTimeout(() => {
+        if (!isErasing) {
+            drawInkSpread(currentX, currentY);
+        }
+    }, 100); // Adjust delay for ink spread
 
     [lastX, lastY] = [currentX, currentY];
     lastTime = currentTime;
+}
+
+// Draw smooth stroke with fiber-like texture
+function drawSmoothStroke(x, y, lineWidth) {
+    const fiberCount = 10; // Number of fibers
+    const fiberLength = lineWidth * 0.5; // Length of each fiber
+
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+
+    // Draw fibers for texture (only for brush, not eraser)
+    if (!isErasing) {
+        for (let i = 0; i < fiberCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const offsetX = Math.cos(angle) * fiberLength;
+            const offsetY = Math.sin(angle) * fiberLength;
+
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + offsetX, y + offsetY);
+            ctx.lineWidth = lineWidth * 0.1;
+            ctx.strokeStyle = `rgba(${hexToRgb(brushColor)}, 0.3)`;
+            ctx.stroke();
+        }
+    }
 }
 
 // Ink spread effect on stopping
@@ -136,40 +171,6 @@ function drawInkSpread(x, y) {
     ctx.fill();
 
     ctx.restore();
-}
-
-// Splatter effect for texture
-function drawSplatter(x, y, size, opacity) {
-    for (let i = 0; i < 5; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const distance = Math.random() * size;
-
-        const offsetX = Math.cos(angle) * distance;
-        const offsetY = Math.sin(angle) * distance;
-
-        ctx.beginPath();
-        ctx.arc(x + offsetX, y + offsetY, size * 0.2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${hexToRgb(brushColor)}, ${opacity * 0.5})`;
-        ctx.fill();
-    }
-}
-
-// Brush fiber effect for smoother transitions
-function drawFibers(x, y, size) {
-    const fiberCount = 6;
-
-    for (let i = 0; i < fiberCount; i++) {
-        const angle = (Math.PI * 2 * i) / fiberCount;
-        const offsetX = Math.cos(angle) * size * 0.3;
-        const offsetY = Math.sin(angle) * size * 0.3;
-
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + offsetX, y + offsetY);
-        ctx.lineWidth = size * 0.1;
-        ctx.strokeStyle = `rgba(${hexToRgb(brushColor)}, 0.3)`;
-        ctx.stroke();
-    }
 }
 
 // Clear the canvas
