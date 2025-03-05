@@ -169,7 +169,7 @@ function drawInkSpread(x, y) {
 
     ctx.save();
     ctx.translate(x, y);
-    ctx.rotate((135 * Math.PI) / 180); // Fixed to 135 degrees (opposite of 45 degrees)
+    ctx.rotate((-45 * Math.PI) / 180); // Corrected to -45 degrees (equivalent to 135 degrees)
 
     ctx.beginPath();
     ctx.ellipse(0, 0, spreadSize * 1.2, spreadSize * 0.6, 0, 0, Math.PI * 2);
