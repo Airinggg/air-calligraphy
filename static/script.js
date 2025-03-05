@@ -14,7 +14,7 @@ let inkSpreadTimeout = null;
 // Brush settings
 let brushSize = 10;
 let brushColor = "#000000";
-let inkSpreadAngle = 135; // 135 degrees
+let inkSpreadAngle = 135; // 135 degrees from horizontal
 
 // Eraser settings
 let eraserSize = 20; // Default eraser size
@@ -166,11 +166,11 @@ function drawSmoothStroke(x, y, lineWidth, opacity) {
 
 // Ink spread effect on stopping
 function drawInkSpread(x, y) {
-    const spreadSize = brushSize * 1.5;
+    const spreadSize = brushSize * 1.2; // Slightly larger than the stroke
 
     ctx.save();
     ctx.translate(x, y);
-    ctx.rotate((inkSpreadAngle * Math.PI) / 180); // 135 degrees
+    ctx.rotate((inkSpreadAngle * Math.PI) / 180); // 135 degrees from horizontal
 
     ctx.beginPath();
     ctx.ellipse(0, 0, spreadSize * 1.2, spreadSize * 0.6, 0, 0, Math.PI * 2);
