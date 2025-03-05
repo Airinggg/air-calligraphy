@@ -9,6 +9,7 @@ let isErasing = false;
 let lastX = 0;
 let lastY = 0;
 let lastTime = 0;
+let pressure = 0.5;
 
 // Brush settings
 let brushSize = 10;
@@ -86,21 +87,26 @@ function drawLine(currentX, currentY) {
     const distance = Math.sqrt(dx * dx + dy * dy);
     const timeDiff = currentTime - lastTime;
 
-    const speed = distance / (timeDiff || 1);
-    const lineWidth = Math.max(brushSize - speed * 3, 2);
-    const opacity = isErasing ? 1 : Math.min(1, 0.6 + (1 / (speed + 1)));
+    // Simulate pressure (slower stroke = more pressure)
+    pressure = Math.max(0.1, Math.min(1, 1 / (timeDiff / distance + 0.05)));
+
+    // Dynamic brush width and opacity
+    const lineWidth = isErasing ? brushSize * 2 : Math.max(brushSize * pressure, 2);
+    const opacity = isErasing ? 1 : Math.min(1, 0.3 + pressure * 0.7);
 
     ctx.lineWidth = lineWidth;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
     if (isErasing) {
-        ctx.globalCompositeOperation = "destination-out"; // Erase mode
+        ctx.globalCompositeOperation = "destination-out";
     } else {
-        ctx.globalCompositeOperation = "source-over"; // Draw mode
+        ctx.globalCompositeOperation = "source-over";
         ctx.strokeStyle = `rgba(${hexToRgb(brushColor)}, ${opacity})`;
-        ctx.shadowBlur = 5;
-        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+
+        // Add ink-like shadow and blur
+        ctx.shadowBlur = pressure * 10;
+        ctx.shadowColor = `rgba(0, 0, 0, ${opacity * 0.3})`;
     }
 
     ctx.lineTo(currentX, currentY);
