@@ -14,7 +14,6 @@ let inkSpreadTimeout = null;
 // Brush settings
 let brushSize = 10;
 let brushColor = "#000000";
-let inkSpreadAngle = 135; // 135 degrees from horizontal
 
 // Eraser settings
 let eraserSize = 20; // Default eraser size
@@ -170,7 +169,7 @@ function drawInkSpread(x, y) {
 
     ctx.save();
     ctx.translate(x, y);
-    ctx.rotate((inkSpreadAngle * Math.PI) / 180); // 135 degrees from horizontal
+    ctx.rotate((135 * Math.PI) / 180); // Fixed to 135 degrees (opposite of 45 degrees)
 
     ctx.beginPath();
     ctx.ellipse(0, 0, spreadSize * 1.2, spreadSize * 0.6, 0, 0, Math.PI * 2);
