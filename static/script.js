@@ -14,7 +14,7 @@ let inkSpreadTimeout = null;
 // Brush settings
 let brushSize = 10;
 let brushColor = "#000000";
-let inkSpreadAngle = -45;
+let inkSpreadAngle = 135; // 135 degrees
 
 // Eraser settings
 let eraserSize = 20; // Default eraser size
@@ -51,6 +51,9 @@ function startDrawing(event) {
     [lastX, lastY] = [event.offsetX, event.offsetY];
     lastTime = Date.now();
     ctx.beginPath();
+
+    // Trigger ink spread immediately at the start of the stroke
+    drawInkSpread(lastX, lastY);
 }
 
 // Start drawing (touch)
@@ -63,6 +66,9 @@ function startDrawingTouch(event) {
     lastY = touch.clientY - rect.top;
     lastTime = Date.now();
     ctx.beginPath();
+
+    // Trigger ink spread immediately at the start of the stroke
+    drawInkSpread(lastX, lastY);
 }
 
 // Stop drawing
@@ -101,8 +107,9 @@ function drawStroke(currentX, currentY) {
 
     const speed = distance / (timeDiff || 1);
 
-    // Adjust line width based on speed
+    // Adjust line width and opacity based on speed
     const lineWidth = isErasing ? eraserSize : Math.max(brushSize * 0.5, brushSize * (1 - speed * 0.05)); // Faster = thinner, slower = thicker
+    const opacity = Math.max(0.3, 1 - speed * 0.05); // Faster = lower opacity
 
     ctx.lineWidth = lineWidth;
     ctx.lineCap = "round";
@@ -112,11 +119,11 @@ function drawStroke(currentX, currentY) {
         ctx.globalCompositeOperation = "destination-out";
     } else {
         ctx.globalCompositeOperation = "source-over";
-        ctx.strokeStyle = brushColor;
+        ctx.strokeStyle = `rgba(${hexToRgb(brushColor)}, ${opacity})`; // Apply opacity for watercolor effect
     }
 
     // Draw smooth stroke with fiber-like texture
-    drawSmoothStroke(currentX, currentY, lineWidth);
+    drawSmoothStroke(currentX, currentY, lineWidth, opacity);
 
     // Check for ink spread (if the mouse stops moving)
     clearTimeout(inkSpreadTimeout);
@@ -124,14 +131,14 @@ function drawStroke(currentX, currentY) {
         if (!isErasing) {
             drawInkSpread(currentX, currentY);
         }
-    }, 100); // Adjust delay for ink spread
+    }, 50); // Reduced delay to 50ms for faster detection
 
     [lastX, lastY] = [currentX, currentY];
     lastTime = currentTime;
 }
 
 // Draw smooth stroke with fiber-like texture
-function drawSmoothStroke(x, y, lineWidth) {
+function drawSmoothStroke(x, y, lineWidth, opacity) {
     const fiberCount = 10; // Number of fibers
     const fiberLength = lineWidth * 0.5; // Length of each fiber
 
@@ -151,7 +158,7 @@ function drawSmoothStroke(x, y, lineWidth) {
             ctx.moveTo(x, y);
             ctx.lineTo(x + offsetX, y + offsetY);
             ctx.lineWidth = lineWidth * 0.1;
-            ctx.strokeStyle = `rgba(${hexToRgb(brushColor)}, 0.3)`;
+            ctx.strokeStyle = `rgba(${hexToRgb(brushColor)}, ${opacity * 0.5})`; // Apply opacity for fibers
             ctx.stroke();
         }
     }
@@ -163,7 +170,7 @@ function drawInkSpread(x, y) {
 
     ctx.save();
     ctx.translate(x, y);
-    ctx.rotate((inkSpreadAngle * Math.PI) / 180);
+    ctx.rotate((inkSpreadAngle * Math.PI) / 180); // 135 degrees
 
     ctx.beginPath();
     ctx.ellipse(0, 0, spreadSize * 1.2, spreadSize * 0.6, 0, 0, Math.PI * 2);
