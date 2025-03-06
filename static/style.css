@@ -5,31 +5,96 @@
 }
 
 body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    padding: 20px;
-    background: #f9f9f9;
+    background: linear-gradient(135deg, #fdfcfb, #f5ebe0, #e1d9d1);
+    background-attachment: fixed;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    color: #4e342e; /* Warm brown for text */
 }
 
 h1 {
+    text-align: center;
     margin-bottom: 20px;
+    font-weight: 700;
+    font-size: 2.5rem;
+    color: #8d6e63; /* Soft brown for the title */
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .controls {
     margin-bottom: 20px;
     display: flex;
     justify-content: center;
-    gap: 15px;
+    gap: 20px;
     flex-wrap: wrap;
+    padding: 10px;
+    border: 2px solid #2c2c2c;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.tool-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 canvas {
     display: block;
     margin: 20px auto;
-    width: 800px;            /* Fixed width */
-    height: 600px;           /* Fixed height */
-    border: 5px solid #000;  /* Black border */
-    border-radius: 10px;     /* Rounded corners */
-    background-color: #fff;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background: #fafaf8; /* Soft paper white */
+    border: 1px solid #e0e0e0; /* Light paper border */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow for a lifted effect */
+    border-radius: 10px;
+}
+
+button {
+    padding: 10px;
+    border: none;
+    border-radius: 50%;
+    background:#8d6e63;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+button i {
+    font-size: 1.2em;
+}
+
+button:hover {
+    background: #8d6e63;
+}
+
+button.active {
+    background-color: #ffcccc;
+    border: 2px solid #5a463f;
+    box-shadow: 0 0 10px rgba(255, 85, 85, 0.5);
+}
+
+
+input[type="color"], input[type="range"], select {
+    padding: 5px;
+    border: 1px solid #bbb;
+    border-radius: 5px;
+    outline: none;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 5px;
+    background: #2c2c2c;
+    border-radius: 5px;
+}
+
+footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.9rem;
+    color: #6d4c41; /* Deeper brown for the footer */
 }

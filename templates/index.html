@@ -6,36 +6,52 @@
     <meta name="description" content="Online Calligraphy Canvas - Create beautiful calligraphy digitally with customizable brush and eraser tools.">
     <meta name="keywords" content="calligraphy, online calligraphy, digital art, handwriting, brush tool, japanese calligraphy">
     <title>Air Calligraphy</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap">
+    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
 </head>
 <body>
     <h1>Air Calligraphy</h1>
     
     <div class="controls">
-        <label for="canvasSize">Canvas Size:</label>
-        <select id="canvasSize" onchange="resizeCanvas()">
-            <option value="800x600">800 x 600</option>
-            <option value="1024x768">1024 x 768</option>
-            <option value="full">Full Screen</option>
-        </select>
+        <div class="tool-group">
+            <label for="canvasSize">キャンバスサイズ</label>
+            <select id="canvasSize" onchange="resizeCanvas()">
+                <option value="800x600">800 x 600</option>
+                <option value="1024x768">1024 x 768</option>
+                <option value="full">フルスクリーン</option>
+            </select>
+        </div>
 
-        <label for="brushSize">Brush Size:</label>
-        <input type="range" id="brushSize" min="1" max="50" value="10">
+        <div class="tool-group">
+            <label for="brushSize">筆サイズ</label>
+            <input type="range" id="brushSize" min="1" max="50" value="10">
+            
+            <label for="colorPicker">筆の色</label>
+            <input type="color" id="colorPicker" value="#000000">
+        </div>
 
-        <label for="eraserSize">Eraser Size:</label>
-          <input type="range" id="eraserSize" min="5" max="50" value="20">
+        <div class="tool-group">
+            <label for="eraserSize">消しゴムサイズ</label>
+            <input type="range" id="eraserSize" min="5" max="50" value="20">
+        </div>
 
-        <label for="colorPicker">Brush Color:</label>
-        <input type="color" id="colorPicker" value="#000000">
-
-        <!-- Clear and Save buttons -->
-        <button onclick="toggleEraser()">Eraser</button>
-        <button onclick="clearCanvas()">Clear</button>
-        <button onclick="saveCanvas()">Save</button>
+        <div class="tool-group">
+            <button onclick="toggleEraser()" title="消しゴム"><i class="fas fa-eraser"></i></button>
+            <button onclick="undo()" title="戻す"><i class="fas fa-undo-alt"></i></button>
+            <button onclick="redo()" title="やり直す"><i class="fas fa-redo-alt"></i></button>
+            <button onclick="clearCanvas()" title="クリア"><i class="fas fa-trash-alt"></i></button>
+            <button onclick="saveCanvas()" title="保存"><i class="fas fa-save"></i></button>
+        </div>
     </div>
 
     <canvas id="calligraphyCanvas"></canvas>
 
-    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    <footer>
+        <p>&copy; 2025 air-calligraphy - デジタル書道体験</p>
+    </footer>
+
+    <script src="../static/script.js" defer></script>
 </body>
 </html>

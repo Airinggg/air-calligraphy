@@ -1,191 +1,144 @@
 const canvas = document.getElementById("calligraphyCanvas");
 const ctx = canvas.getContext("2d");
 
+let drawing = false;
+let isErasing = false;
+let brushSize = 15;
+let brushColor = "#000000";
+let lastX = 0, lastY = 0;
+let lastPressure = 0.5;
+let lastSpeed = 0;
+
+// History stack for undo/redo
+let history = [];
+let redoStack = [];
+
 canvas.width = 800;
 canvas.height = 600;
 
-let drawing = false;
-let isErasing = false;
-let lastX = 0;
-let lastY = 0;
-let lastTime = 0;
-let inkSpreadTimeout = null;
+function resizeCanvas() {
+    const size = document.getElementById("canvasSize").value.split("x");
+    canvas.width = parseInt(size[0]);
+    canvas.height = parseInt(size[1]);
+    clearCanvas();
+}
 
-// Brush settings
-let brushSize = 10;
-let brushColor = "#000000";
-
-// Eraser settings
-let eraserSize = 20; // Default eraser size
-
-// Handle mouse and touch events
-canvas.addEventListener("mousedown", startDrawing);
-canvas.addEventListener("mouseup", stopDrawing);
-canvas.addEventListener("mouseout", stopDrawing);
-canvas.addEventListener("mousemove", draw);
-
-canvas.addEventListener("touchstart", startDrawingTouch);
-canvas.addEventListener("touchend", stopDrawing);
-canvas.addEventListener("touchcancel", stopDrawing);
-canvas.addEventListener("touchmove", drawTouch);
-
-// Brush size and color controls
-document.getElementById("brushSize").addEventListener("input", (e) => {
-    brushSize = e.target.value;
-});
-
-document.getElementById("colorPicker").addEventListener("input", (e) => {
-    brushColor = e.target.value;
-});
-
-// Eraser size control
-document.getElementById("eraserSize").addEventListener("input", (e) => {
-    eraserSize = e.target.value;
-});
-
-// Start drawing (mouse)
-function startDrawing(event) {
-    event.preventDefault();
+canvas.addEventListener("pointerdown", (event) => {
+    saveState(); // Save state before starting a new stroke
     drawing = true;
     [lastX, lastY] = [event.offsetX, event.offsetY];
-    lastTime = Date.now();
-    ctx.beginPath();
-
-    // Trigger ink spread immediately at the start of the stroke
-    drawInkSpread(lastX, lastY);
-}
-
-// Start drawing (touch)
-function startDrawingTouch(event) {
-    event.preventDefault();
-    const touch = event.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    drawing = true;
-    lastX = touch.clientX - rect.left;
-    lastY = touch.clientY - rect.top;
-    lastTime = Date.now();
-    ctx.beginPath();
-
-    // Trigger ink spread immediately at the start of the stroke
-    drawInkSpread(lastX, lastY);
-}
-
-// Stop drawing
-function stopDrawing() {
-    if (drawing) {
-        clearTimeout(inkSpreadTimeout);
-        drawInkSpread(lastX, lastY);
-    }
-    drawing = false;
-    ctx.beginPath();
-}
-
-// Main drawing function (mouse)
-function draw(event) {
-    if (!drawing) return;
-    event.preventDefault();
-    drawStroke(event.offsetX, event.offsetY);
-}
-
-// Main drawing function (touch)
-function drawTouch(event) {
-    if (!drawing) return;
-    event.preventDefault();
-    const touch = event.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    drawStroke(touch.clientX - rect.left, touch.clientY - rect.top);
-}
-
-// Handle the stroke
-function drawStroke(currentX, currentY) {
-    const currentTime = Date.now();
-    const dx = currentX - lastX;
-    const dy = currentY - lastY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    const timeDiff = currentTime - lastTime;
-
-    const speed = distance / (timeDiff || 1);
-
-    // Adjust line width and opacity based on speed
-    const lineWidth = isErasing ? eraserSize : Math.max(brushSize * 0.5, brushSize * (1 - speed * 0.05)); // Faster = thinner, slower = thicker
-    const opacity = Math.max(0.3, 1 - speed * 0.05); // Faster = lower opacity
-
-    ctx.lineWidth = lineWidth;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    if (isErasing) {
-        ctx.globalCompositeOperation = "destination-out";
-    } else {
-        ctx.globalCompositeOperation = "source-over";
-        ctx.strokeStyle = `rgba(${hexToRgb(brushColor)}, ${opacity})`; // Apply opacity for watercolor effect
-    }
-
-    // Draw smooth stroke with fiber-like texture
-    drawSmoothStroke(currentX, currentY, lineWidth, opacity);
-
-    // Check for ink spread (if the mouse stops moving)
-    clearTimeout(inkSpreadTimeout);
-    inkSpreadTimeout = setTimeout(() => {
-        if (!isErasing) {
-            drawInkSpread(currentX, currentY);
-        }
-    }, 50); // Reduced delay to 50ms for faster detection
-
-    [lastX, lastY] = [currentX, currentY];
-    lastTime = currentTime;
-}
-
-// Draw smooth stroke with fiber-like texture
-function drawSmoothStroke(x, y, lineWidth, opacity) {
-    const fiberCount = 10; // Number of fibers
-    const fiberLength = lineWidth * 0.5; // Length of each fiber
-
+    lastPressure = event.pressure || 0.5;
     ctx.beginPath();
     ctx.moveTo(lastX, lastY);
-    ctx.lineTo(x, y);
-    ctx.stroke();
+});
 
-    // Draw fibers for texture (only for brush, not eraser)
-    if (!isErasing) {
-        for (let i = 0; i < fiberCount; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const offsetX = Math.cos(angle) * fiberLength;
-            const offsetY = Math.sin(angle) * fiberLength;
+canvas.addEventListener("pointerup", () => {
+    drawing = false;
+    ctx.closePath();
+});
 
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(x + offsetX, y + offsetY);
-            ctx.lineWidth = lineWidth * 0.1;
-            ctx.strokeStyle = `rgba(${hexToRgb(brushColor)}, ${opacity * 0.5})`; // Apply opacity for fibers
-            ctx.stroke();
-        }
+canvas.addEventListener("pointermove", (event) => {
+    if (!drawing) return;
+    draw(event.offsetX, event.offsetY, event.pressure || 0.5);
+});
+
+function draw(x, y, pressure) {
+    const dx = x - lastX;
+    const dy = y - lastY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const speed = distance / 10;
+    const angle = Math.atan2(dy, dx);
+
+    const dynamicSize = isErasing ?  document.getElementById("eraserSize").value : brushSize * Math.min(pressure * 2, 1.5) * (1 - speed * 0.1);
+
+    const wavelength = Math.max(5, 20 * (1 - pressure));
+    const amplitude = dynamicSize * 0.5 * pressure;
+
+    ctx.lineWidth = dynamicSize;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = isErasing ? "rgba(0, 0, 0, 1)" : `rgba(${hexToRgb(brushColor)}, ${1 - speed * 0.2})`;
+    ctx.shadowColor = isErasing ? "transparent" : ctx.strokeStyle;
+    ctx.shadowBlur = isErasing ? 0 : 5;
+
+    ctx.globalCompositeOperation = isErasing ? "destination-out" : "source-over";
+
+    drawOverlappingWaves(x, y, wavelength, amplitude);
+
+    [lastX, lastY] = [x, y];
+    lastPressure = pressure;
+    lastSpeed = speed;
+}
+
+function toggleEraser() {
+    isErasing = !isErasing;
+    const eraserButton = document.querySelector('[title="消しゴム"]');
+
+    if (isErasing) {
+        brushSize = document.getElementById("eraserSize").value;
+        eraserButton.classList.add("active"); // Add 'active' class when eraser is on
+    } else {
+        brushSize = document.getElementById("brushSize").value;
+        eraserButton.classList.remove("active"); // Remove 'active' class when eraser is off
     }
 }
 
-// Ink spread effect on stopping
-function drawInkSpread(x, y) {
-    const spreadSize = brushSize * 1.2; // Slightly larger than the stroke
+function drawOverlappingWaves(x, y, wavelength, amplitude) {
+    const waveCount = 3;
+    const horizontalShift = wavelength * 0.2;
 
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate((-45 * Math.PI) / 180); // Corrected to -45 degrees (equivalent to 135 degrees)
-
-    ctx.beginPath();
-    ctx.ellipse(0, 0, spreadSize * 1.2, spreadSize * 0.6, 0, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${hexToRgb(brushColor)}, 0.8)`;
-    ctx.fill();
-
-    ctx.restore();
+    for (let i = 0; i < waveCount; i++) {
+        ctx.beginPath();
+        for (let j = 0; j < wavelength * 2; j++) {
+            const t = j / (wavelength * 2);
+            const waveOffset = amplitude * Math.sin(t * Math.PI * 2);
+            const curveX = lastX + (x - lastX) * t + i * horizontalShift;
+            const curveY = lastY + (y - lastY) * t + waveOffset;
+            j === 0 ? ctx.moveTo(curveX, curveY) : ctx.lineTo(curveX, curveY);
+        }
+        ctx.stroke();
+    }
 }
 
-// Clear the canvas
+// Save the current canvas state
+function saveState() {
+    history.push(canvas.toDataURL());
+    redoStack = [];
+}
+
+// Undo function
+function undo() {
+    if (history.length > 0) {
+        redoStack.push(canvas.toDataURL());
+        const imgData = history.pop();
+        restoreCanvas(imgData);
+    }
+}
+
+// Redo function
+function redo() {
+    if (redoStack.length > 0) {
+        history.push(canvas.toDataURL());
+        const imgData = redoStack.pop();
+        restoreCanvas(imgData);
+    }
+}
+
+// Restore canvas from saved state
+function restoreCanvas(imgData) {
+    const img = new Image();
+    img.src = imgData;
+    img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+    };
+}
+
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.beginPath();
+    saveState();
 }
 
-// Save the canvas as an image
 function saveCanvas() {
     const link = document.createElement("a");
     link.download = "calligraphy.png";
@@ -193,14 +146,16 @@ function saveCanvas() {
     link.click();
 }
 
-// Toggle eraser mode
-function toggleEraser() {
-    isErasing = !isErasing;
-    const eraserButton = document.querySelector("button[onclick='toggleEraser()']");
-    eraserButton.textContent = isErasing ? "Stop Eraser" : "Eraser";
-}
+document.getElementById("colorPicker").addEventListener("input", (e) => {
+    brushColor = e.target.value;
+});
 
-// Convert hex to RGB
+document.getElementById("brushSize").addEventListener("input", (e) => {
+    brushSize = e.target.value;
+});
+
+resizeCanvas();
+
 function hexToRgb(hex) {
     const bigint = parseInt(hex.slice(1), 16);
     const r = (bigint >> 16) & 255;
@@ -208,3 +163,4 @@ function hexToRgb(hex) {
     const b = bigint & 255;
     return `${r}, ${g}, ${b}`;
 }
+
